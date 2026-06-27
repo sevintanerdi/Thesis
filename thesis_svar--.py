@@ -8,33 +8,26 @@ from statsmodels.tsa.stattools import adfuller
 df = pd.read_csv('thesis_data.csv', index_col='date', parse_dates=True)
 
 # ── GRAFIK 1: Zaman Serisi ──
-country_styles = {
-    'ea': ('k-',  'Euro Area'),
-    'de': ('b--', 'Germany'),
-    'es': ('r-.',  'Spain'),
-    'it': ('g:',  'Italy'),
-    'fr': ('m-',  'France'),
-    'nl': ('c--', 'Netherlands'),
-}
-
 fig1, axes1 = plt.subplots(3, 2, figsize=(14, 12))
-fig1.suptitle('Key Variables: All Countries', fontsize=14, fontweight='bold')
+fig1.suptitle('Key Variables: Euro Area, Germany and Spain', fontsize=14, fontweight='bold')
 
 axes1[0, 0].plot(df.index, df['policy_rate'], 'k-', linewidth=2)
 axes1[0, 0].set_title('ECB Policy Rate (%)')
 axes1[0, 0].axhline(y=0, color='r', linestyle='--', alpha=0.5)
 axes1[0, 0].set_xlabel('Date')
 
-for c, (style, label) in country_styles.items():
-    axes1[0, 1].plot(df.index, df[f'nim_{c}'], style, linewidth=2, label=label)
+axes1[0, 1].plot(df.index, df['nim_ea'], 'k-',  linewidth=2, label='Euro Area')
+axes1[0, 1].plot(df.index, df['nim_de'], 'b--', linewidth=2, label='Germany')
+axes1[0, 1].plot(df.index, df['nim_es'], 'r-.', linewidth=2, label='Spain')
 axes1[0, 1].set_title('Net Interest Margin (%)')
-axes1[0, 1].legend(fontsize=8)
+axes1[0, 1].legend()
 axes1[0, 1].set_xlabel('Date')
 
-for c, (style, label) in country_styles.items():
-    axes1[1, 0].plot(df.index, df[f'cet1_{c}'], style, linewidth=2, label=label)
+axes1[1, 0].plot(df.index, df['cet1_ea'], 'k-',  linewidth=2, label='Euro Area')
+axes1[1, 0].plot(df.index, df['cet1_de'], 'b--', linewidth=2, label='Germany')
+axes1[1, 0].plot(df.index, df['cet1_es'], 'r-.', linewidth=2, label='Spain')
 axes1[1, 0].set_title('CET1 Capital Ratio (%)')
-axes1[1, 0].legend(fontsize=8)
+axes1[1, 0].legend()
 axes1[1, 0].set_xlabel('Date')
 
 axes1[1, 1].plot(df.index, df['credit_growth'], 'k-', linewidth=2)
@@ -115,16 +108,14 @@ def run_var(df_vars, label):
     stderr = results.irf(20).stderr(orth=False)
     return results, irf, stderr
 
-# ── BASELINE VARs: SSR ana model (6 ülke) ──
-# SSR policy stance'ı daha iyi yansıtıyor: 2015-2022 döneminde DFR sıfırda
-# takılı kalırken SSR -3%'e kadar iniyor, gerçek accommodation'ı ölçüyor.
+# ── BASELINE VARs: 6 ülke ──
 countries_all = ['ea', 'de', 'es', 'it', 'fr', 'nl']
 country_labels = {'ea': 'Euro Area', 'de': 'Germany', 'es': 'Spain',
                   'it': 'Italy',     'fr': 'France',  'nl': 'Netherlands'}
 
 baseline_results = {}
 for c in countries_all:
-    vars_c = ['shadow_rate', f'nim_{c}', f'cet1_{c}', 'credit_growth', 'gdp_growth', 'inflation']
+    vars_c = ['policy_rate', f'nim_{c}', f'cet1_{c}', 'credit_growth', 'gdp_growth', 'inflation']
     df_c   = df_model[vars_c].dropna()
     res, irf, se = run_var(df_c, country_labels[c])
     baseline_results[c] = {'vars': vars_c, 'df': df_c, 'results': res, 'irf': irf, 'stderr': se}
@@ -134,39 +125,43 @@ yield_map = {'de': 'yield_de', 'es': 'yield_es', 'it': 'yield_it',
              'fr': 'yield_fr', 'nl': 'yield_nl'}
 yield_results = {}
 for c in ['de', 'es', 'it', 'fr', 'nl']:
-    vars_c = ['shadow_rate', f'nim_{c}', f'cet1_{c}', yield_map[c], 'credit_growth', 'gdp_growth', 'inflation']
+    vars_c = ['policy_rate', f'nim_{c}', f'cet1_{c}', yield_map[c], 'credit_growth', 'gdp_growth', 'inflation']
     df_c   = df_model[vars_c].dropna()
     res, irf, se = run_var(df_c, f"{country_labels[c]} [+yield]")
     yield_results[c] = {'vars': vars_c, 'df': df_c, 'results': res, 'irf': irf, 'stderr': se}
 
-# ── GRAFIK 2: IRF baseline - 6 ülke (6x4) ──
-fig2, axes2 = plt.subplots(6, 4, figsize=(20, 22))
-fig2.suptitle('Impulse Response Functions: Shadow Rate Shock\nAll Countries', fontsize=14, fontweight='bold')
-periods = range(21)
-for i, c in enumerate(countries_all):
-    r   = baseline_results[c]
-    irf = r['irf']
-    se  = r['stderr']
-    vl  = r['vars']
-    for j, (vname, color, vlabel) in enumerate([
-        (f'nim_{c}',      'blue',   'NIM Response'),
-        (f'cet1_{c}',     'red',    'CET1 Response'),
-        ('credit_growth', 'purple', 'Credit Growth Response'),
-        ('gdp_growth',    'green',  'GDP Response'),
-    ]):
-        ax  = axes2[i, j]
-        idx = vl.index(vname)
-        val = irf.irfs[:, idx, 0]
-        err = se[:, idx, 0]
-        ax.plot(periods, val, color=color, linewidth=2)
-        ax.fill_between(periods, val-err, val+err, alpha=0.2, color=color)
-        ax.axhline(y=0, color='k', linestyle='--', alpha=0.5)
-        ax.set_title(f'{country_labels[c]} - {vlabel}')
-        ax.set_xlabel('Quarters')
-plt.tight_layout()
-plt.savefig('irf_results.png', dpi=300, bbox_inches='tight')
-plt.show()
-print("irf_results.png kaydedildi!")
+# ── GRAFIK 2: IRF baseline - 6 ülke (3x4) ──
+for group, group_countries, fname, title in [
+    ('baseline_12', ['ea','de','es'], 'irf_results.png',    'Impulse Response Functions: Policy Rate Shock\nEuro Area, Germany, Spain'),
+    ('baseline_34', ['it','fr','nl'], 'irf_results_2.png',  'Impulse Response Functions: Policy Rate Shock\nItaly, France, Netherlands'),
+]:
+    fig2, axes2 = plt.subplots(3, 4, figsize=(20, 12))
+    fig2.suptitle(title, fontsize=14, fontweight='bold')
+    for i, c in enumerate(group_countries):
+        r    = baseline_results[c]
+        irf  = r['irf']
+        se   = r['stderr']
+        vl   = r['vars']
+        periods = range(21)
+        for j, (vname, color, vlabel) in enumerate([
+            (f'nim_{c}',      'blue',   'NIM Response'),
+            (f'cet1_{c}',     'red',    'CET1 Response'),
+            ('credit_growth', 'purple', 'Credit Growth Response'),
+            ('gdp_growth',    'green',  'GDP Response'),
+        ]):
+            ax  = axes2[i, j]
+            idx = vl.index(vname)
+            val = irf.irfs[:, idx, 0]
+            err = se[:, idx, 0]
+            ax.plot(periods, val, color=color, linewidth=2)
+            ax.fill_between(periods, val-err, val+err, alpha=0.2, color=color)
+            ax.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+            ax.set_title(f'{country_labels[c]} - {vlabel}')
+            ax.set_xlabel('Quarters')
+    plt.tight_layout()
+    plt.savefig(fname, dpi=300, bbox_inches='tight')
+    plt.show()
+    print(f"{fname} kaydedildi!")
 
 # ── GRAFIK 3: Country Comparison NIM - tüm ülkeler ──
 fig3, (ax3, ax5) = plt.subplots(1, 2, figsize=(18, 6))
@@ -227,17 +222,16 @@ plt.savefig('nim_yield_comparison.png', dpi=300, bbox_inches='tight')
 plt.show()
 print("NIM yield comparison grafiği kaydedildi!")
 
-# ── GRAFIK 5: Robustness - DFR (policy_rate) ──
-# Baseline: SSR. Robustness: ECB Deposit Facility Rate.
+# ── GRAFIK 5: Robustness - Shadow Rate ──
 rob_results = {}
 for c in countries_all:
-    vars_c = ['policy_rate', f'nim_{c}', f'cet1_{c}', 'credit_growth', 'gdp_growth', 'inflation']
+    vars_c = ['shadow_rate', f'nim_{c}', f'cet1_{c}', 'credit_growth', 'gdp_growth', 'inflation']
     df_c   = df_model[vars_c].dropna()
-    res, irf, se = run_var(df_c, f"{country_labels[c]} [DFR]")
+    res, irf, se = run_var(df_c, f"{country_labels[c]} [SSR]")
     rob_results[c] = {'vars': vars_c, 'irf': irf, 'stderr': se}
 
 fig5, axes5 = plt.subplots(3, 2, figsize=(16, 14))
-fig5.suptitle('Robustness Check: Baseline (SSR) vs ECB Policy Rate (DFR)\nNIM and CET1 Response',
+fig5.suptitle('Robustness Check: Baseline (DFR) vs Shadow Rate (SSR)\nNIM and CET1 Response',
               fontsize=13, fontweight='bold')
 for i, c in enumerate(['ea', 'de', 'es']):
     for j, vname in enumerate([f'nim_{c}', f'cet1_{c}']):
@@ -248,9 +242,9 @@ for i, c in enumerate(['ea', 'de', 'es']):
         b_se  = rb['stderr'][:, rb['vars'].index(vname), 0]
         r_val = rr['irf'].irfs[:, rr['vars'].index(vname), 0]
         r_se  = rr['stderr'][:, rr['vars'].index(vname), 0]
-        ax.plot(periods, b_val, 'b-',  linewidth=2, label='Baseline (SSR)')
+        ax.plot(periods, b_val, 'b-',  linewidth=2, label='Baseline (DFR)')
         ax.fill_between(periods, b_val-b_se, b_val+b_se, alpha=0.15, color='blue')
-        ax.plot(periods, r_val, 'r--', linewidth=2, label='Robustness (DFR)')
+        ax.plot(periods, r_val, 'r--', linewidth=2, label='Robustness (SSR)')
         ax.fill_between(periods, r_val-r_se, r_val+r_se, alpha=0.15, color='red')
         ax.axhline(y=0, color='k', linestyle=':', alpha=0.5)
         vlabel = 'NIM' if 'nim' in vname else 'CET1'
