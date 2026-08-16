@@ -195,10 +195,44 @@ for c in COUNTRIES:
 
 
 # ── Figures ──
+fig0, axes0 = plt.subplots(3, 2, figsize=(14, 14))
+fig0.suptitle('Key Variables: All Countries (2015Q1-present)', fontsize=13, fontweight='bold')
+
+ax_dfr = axes0[0, 0]
+ax_dfr.plot(raw['de'].index, raw['de']['dfr'], color='black', linewidth=2)
+ax_dfr.axhline(0, color='gray', linestyle='--', alpha=0.5)
+ax_dfr.set_title('ECB Deposit Facility Rate (%)')
+ax_dfr.set_xlabel('Date')
+
+panel_map = [
+    (axes0[0, 1], 'nim', 'Net Interest Margin (%)'),
+    (axes0[1, 0], 'cet1', 'CET1 Capital Ratio (%)'),
+    (axes0[1, 1], 'long_yield', '10Y Government Bond Yield (%)'),
+    (axes0[2, 0], 'credit', 'Credit (100 x log level, EUR mn)'),
+    (axes0[2, 1], 'gdp', 'Real GDP (100 x log level)'),
+]
+
+for ax, varname, title in panel_map:
+    for c in COUNTRIES:
+        df_c = raw[c]
+        col = varname if varname == 'long_yield' else f'{varname}_{c}'
+        if col in df_c.columns:
+            ax.plot(df_c.index, df_c[col], color=COUNTRY_COLORS[c], linestyle=COUNTRY_LS[c],
+                    linewidth=1.8, label=COUNTRY_LABELS[c])
+    ax.set_title(title)
+    ax.set_xlabel('Date')
+    if varname == 'nim':
+        ax.legend(fontsize=8)
+
+plt.tight_layout()
+plt.savefig('timeseries.png', dpi=300, bbox_inches='tight')
+plt.show()
+print("timeseries.png saved")
+
 periods = range(HORIZON + 1)
 
 # Figure 1: Baseline IRF grid — all countries x key variables
-target_vars = ['nim', 'cet1', 'long_yield', 'gdp']
+target_vars = ['nim', 'cet1', 'long_yield', 'credit', 'gdp']
 fig1, axes1 = plt.subplots(len(COUNTRIES), len(target_vars),
                             figsize=(4*len(target_vars), 4*len(COUNTRIES)))
 fig1.suptitle('Response to ∆DFR Shock\n(Baseline: 4 lags, 2015Q1–present)',
@@ -225,19 +259,21 @@ plt.show()
 print("irf_baseline.png saved")
 
 # Figure 2: Cross-country NIM and CET1 comparison
-fig2, (ax_nim, ax_cet1) = plt.subplots(1, 2, figsize=(16, 6))
+fig2, (ax_nim, ax_cet1, ax_credit) = plt.subplots(1, 3, figsize=(22, 6))
 fig2.suptitle('Cross-Country Comparison: Response to ∆DFR Shock', fontsize=13, fontweight='bold')
 
 for c in COUNTRIES:
     color = COUNTRY_COLORS[c]
     ls    = COUNTRY_LS[c]
     label = COUNTRY_LABELS[c]
-    val_nim  = get_response(results_main[c], 'nim')
-    val_cet1 = get_response(results_main[c], 'cet1')
-    if val_nim  is not None: ax_nim.plot(periods,  val_nim,  color=color, linestyle=ls, linewidth=2, label=label)
-    if val_cet1 is not None: ax_cet1.plot(periods, val_cet1, color=color, linestyle=ls, linewidth=2, label=label)
+    val_nim    = get_response(results_main[c], 'nim')
+    val_cet1   = get_response(results_main[c], 'cet1')
+    val_credit = get_response(results_main[c], 'credit')
+    if val_nim    is not None: ax_nim.plot(periods,    val_nim,    color=color, linestyle=ls, linewidth=2, label=label)
+    if val_cet1   is not None: ax_cet1.plot(periods,   val_cet1,   color=color, linestyle=ls, linewidth=2, label=label)
+    if val_credit is not None: ax_credit.plot(periods, val_credit, color=color, linestyle=ls, linewidth=2, label=label)
 
-for ax, title in [(ax_nim, 'NIM Response'), (ax_cet1, 'CET1 Response')]:
+for ax, title in [(ax_nim, 'NIM Response'), (ax_cet1, 'CET1 Response'), (ax_credit, 'Credit Growth Response')]:
     ax.axhline(0, color='k', linestyle=':', alpha=0.5)
     ax.set_title(title); ax.set_xlabel('Quarters'); ax.legend()
 

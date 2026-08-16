@@ -1,0 +1,31 @@
+Country,Variable,Transformation,ADF Stat,p-value,Stationary
+Germany,LONG_YIELD,First difference,-2.792,0.059,Yes (10%)
+Germany,NIM,Levels,-3.065,0.029,Yes (5%)
+Germany,CET1,Levels,-0.231,0.935,No
+Germany,GDP,First difference,-7.624,0.0,Yes (5%)
+Germany,DEFL,First difference,-2.225,0.197,No
+Germany,CREDIT,First difference,-2.411,0.139,No
+Spain,LONG_YIELD,First difference,-4.338,0.0,Yes (5%)
+Spain,NIM,Levels,-3.127,0.025,Yes (5%)
+Spain,CET1,Levels,-0.987,0.758,No
+Spain,GDP,First difference,-7.906,0.0,Yes (5%)
+Spain,DEFL,First difference,-1.914,0.326,No
+Spain,CREDIT,First difference,-2.131,0.232,No
+Italy,LONG_YIELD,First difference,-4.437,0.0,Yes (5%)
+Italy,NIM,Levels,-1.756,0.402,No
+Italy,CET1,Levels,-1.228,0.661,No
+Italy,GDP,First difference,-7.823,0.0,Yes (5%)
+Italy,DEFL,First difference,-5.707,0.0,Yes (5%)
+Italy,CREDIT,First difference,-6.962,0.0,Yes (5%)
+France,LONG_YIELD,First difference,-4.523,0.0,Yes (5%)
+France,NIM,Levels,-1.803,0.379,No
+France,CET1,Levels,-1.704,0.429,No
+France,GDP,First difference,-6.657,0.0,Yes (5%)
+France,DEFL,First difference,-7.807,0.0,Yes (5%)
+France,CREDIT,First difference,-2.75,0.066,Yes (10%)
+Netherlands,LONG_YIELD,First difference,-2.742,0.067,Yes (10%)
+Netherlands,NIM,Levels,-3.019,0.033,Yes (5%)
+Netherlands,CET1,Levels,-2.917,0.043,Yes (5%)
+Netherlands,GDP,First difference,-7.842,0.0,Yes (5%)
+Netherlands,DEFL,First difference,-2.234,0.194,No
+Netherlands,CREDIT,First difference,-1.374,0.594,No
